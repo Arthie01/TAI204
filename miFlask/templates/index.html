@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>CRUD Usuarios</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #333; color: white; }
+        input { padding: 5px; margin: 5px; }
+        button { padding: 5px 10px; margin: 5px; cursor: pointer; }
+        .form-editar { display: none; margin: 20px 0; padding: 10px; border: 2px solid #333; }
+    </style>
+</head>
+<body>
+    <h1>CRUD Usuarios</h1>
+    
+    <h2>Agregar Usuario</h2>
+    <form action="/agregar" method="POST">
+        <input type="text" name="nombre" placeholder="Nombre" required>
+        <input type="text" name="edad" placeholder="Edad" required>
+        <button type="submit">Agregar</button>
+    </form>
+
+    <h2>Lista de Usuarios</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>nombre</th>
+                <th>edad</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr>
+                <td>{{ usuario.id }}</td>
+                <td>{{ usuario.nombre }}</td>
+                <td>{{ usuario.edad }}</td>
+                <td>
+                    <button onclick="document.getElementById('form-{{ usuario.id }}').style.display='block'">Editar</button>
+                    <a href="/eliminar/{{ usuario.id }}" onclick="return confirm('¿Eliminar usuario?')">
+                        <button type="button">Eliminar</button>
+                    </a>
+                </td>
+            </tr>
+            <tr id="form-{{ usuario.id }}" style="display:none">
+                <td colspan="4">
+                    <form action="/editar" method="POST" style="padding:10px; background:#f0f0f0;">
+                        <input type="hidden" name="id" value="{{ usuario.id }}">
+                        <input type="text" name="nombre" value="{{ usuario.nombre }}" required>
+                        <input type="text" name="edad" value="{{ usuario.edad }}" required>
+                        <button type="submit">Actualizar</button>
+                        <button type="button" onclick="document.getElementById('form-{{ usuario.id }}').style.display='none'">Cancelar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

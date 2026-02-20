@@ -1,0 +1,13 @@
+##hacer la comunicacion entre dos contenedores
+
+services: 
+  api:
+    build: .
+    container_name: server_fastAPI
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      
+    
+    
