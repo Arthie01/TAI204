@@ -2,6 +2,7 @@
 from fastapi import FastAPI, status, HTTPException
 import asyncio 
 from typing import Optional
+from pydantic import BaseModel
 
 #Instancia del servidor
 
@@ -40,6 +41,12 @@ usuarios = [
     {"id":3, "nombre": "Emilio", "edad": "25"}
 ]
 
+class crear_usuario(BaseModel):
+    id: int
+    nombre: str
+    edad: int
+
+
 @app.get("/v1/ParamtroOp/", tags=['Parametro opcional'])
 async def consultatodos(id:Optional[int]=None):
     if id  is not None: 
@@ -62,9 +69,9 @@ async def consutaT():
     }
 
 @app.post("/v1/usuarios/", tags=['CRUD HTTP'])
-async def agregar_usuario(usuario:dict):  ##usuarios, pero agregarlos como un diccionario
+async def agregar_usuario(usuario:crear_usuario):  ##usuarios, pero agregarlos como un diccionario
     for usr in usuarios:
-        if usr["id"] == usuario.get("id"):
+        if usr["id"] == usuario.id:
             raise HTTPException(
                 status_code= 400, 
                 detail="El id ya existe"
