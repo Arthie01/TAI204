@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 #copiar el codigo de nuestra API para que habite en el contenedor
-COPY ./App ./app
+COPY ./app ./app
 
 #Exponer el puerto con el cual estara trabajando el contenedor
 EXPOSE 5000
