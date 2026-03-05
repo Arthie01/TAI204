@@ -1,35 +1,75 @@
 # importaciones
 from fastapi import FastAPI, status, HTTPException, Depends
-import asyncio 
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+import asyncio
 from typing import Optional, Annotated
 from pydantic import BaseModel, Field
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import secrets ##manipulacion de contraseñas hasehadas
+from jose import JWTError, jwt
+from datetime import datetime, timedelta, timezone
 
 
+# Configuracion JWT
+SECRET_KEY = "clave-secreta-super-segura-cambiar-en-produccion"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Usuarios hardcodeados (en produccion usar BD)
+USERS_DB = {
+    "artemio": {"username": "artemio", "password": "123456"}
+}
 
 #Instancia del servidor
-app = FastAPI (
+app = FastAPI(
     title = "MI primera API",
     description= "Artemio Hurtado Hernandez",
-    version="1.0"
+    version="2.0"
     )
 
 
-### Seguridad con HTTP BASIC
-security = HTTPBasic()
+### Seguridad con OAuth2 + JWT
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def verificar_peticion(credenciales: Annotated[HTTPBasicCredentials, Depends(security)]):
-    usuario_aut= secrets.compare_digest(credenciales.username, "artemio")
-    contra_aut= secrets.compare_digest(credenciales.password, "123456")
 
-    if not(usuario_aut and contra_aut):
+def crear_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def verificar_token(token: Annotated[str, Depends(oauth2_scheme)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token invalido",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return username
+    except JWTError:
         raise HTTPException(
-            status_code = status.HTTP_401_UNAUTHORIZED,
-            detail= "Credenciales no autorizadas"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token invalido o expirado",
+            headers={"WWW-Authenticate": "Bearer"}
         )
-    
-    return credenciales.username
+
+
+@app.post("/token", tags=["Autenticacion"])
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    user = USERS_DB.get(form_data.username)
+    if not user or user["password"] != form_data.password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    access_token = crear_token(
+        data={"sub": user["username"]},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 
@@ -127,7 +167,7 @@ async def actualizar_usuario(usuario:dict):  ##usuarios, pero agregarlos como un
 
 
 @app.delete("/v1/usuarios/{id}", tags=['CRUD HTTP'], status_code=status.HTTP_200_OK)
-async def eliminar_usuario(id: int, usuario_aut: Annotated[str, Depends(verificar_peticion)]):
+async def eliminar_usuario(id: int, usuario_aut: Annotated[str, Depends(verificar_token)]):
     for usr in usuarios:
         if usr["id"] == id:
             usuarios.remove(usr)
