@@ -1,24 +1,20 @@
-# importaciones
 from fastapi import FastAPI, status, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import asyncio
 from typing import Optional, Annotated
 from pydantic import BaseModel, Field
 from jose import JWTError, jwt
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 
-# Configuracion JWT
-SECRET_KEY = "clave-secreta-super-segura-cambiar-en-produccion"
+SECRET_KEY = "Lo que hay aqui dentro es lo mas secreto de lo secreto de todo lo secreto y yo soy el unico testigo"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 2
 
-# Usuarios hardcodeados (en produccion usar BD)
 USERS_DB = {
     "artemio": {"username": "artemio", "password": "123456"}
 }
 
-#Instancia del servidor
 app = FastAPI(
     title = "MI primera API",
     description= "Artemio Hurtado Hernandez",
@@ -26,13 +22,12 @@ app = FastAPI(
     )
 
 
-### Seguridad con OAuth2 + JWT
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def crear_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -72,9 +67,6 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-
-#endpoint
-
 @app.get("/", tags=['Inicio'])
 async def Bievenvido():
     return {"mensaje":"Bienvenido a FastAPI",
@@ -83,7 +75,7 @@ async def Bievenvido():
 
 @app.get("/holaMundo", tags=['Asincronia'])
 async def Hola():
-    await asyncio.sleep(5)  #peticion, consultaBD, Archivo
+    await asyncio.sleep(5)
     return {"mensaje":"Hola Mundo FastAPI",
             "status":"200"
             }
@@ -129,7 +121,7 @@ async def consutaT():
     }
 
 @app.post("/v1/usuarios/", tags=['CRUD HTTP'])
-async def agregar_usuario(usuario:crear_usuario):  ##usuarios, pero agregarlos como un diccionario
+async def agregar_usuario(usuario:crear_usuario):
     for usr in usuarios:
         if usr["id"] == usuario.id:
             raise HTTPException(
@@ -145,10 +137,8 @@ async def agregar_usuario(usuario:crear_usuario):  ##usuarios, pero agregarlos c
     }
 
 
-##agregar put y delete
-
 @app.put("/v1/usuarios/", tags=['CRUD HTTP'])
-async def actualizar_usuario(usuario:dict):  ##usuarios, pero agregarlos como un diccionario
+async def actualizar_usuario(usuario: dict, usuario_aut: Annotated[str, Depends(verificar_token)]):
     for usr in usuarios:
         if usr["id"] == usuario.get("id"):
             usr["nombre"] = usuario.get("nombre")
